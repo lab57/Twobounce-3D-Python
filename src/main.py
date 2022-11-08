@@ -321,12 +321,13 @@ def linspace(start, stop, n):
         yield start + h * i
 
 
-def iterateStartVecs(n0, n, objs, results=None, shouldPrint=False) -> tuple[Hit, Hit]:
+def iterateStartVecs(n0, n, objs, results=None, shouldPrint=False, pid=0) -> tuple[Hit, Hit]:
     LENGTH = 2.5
     if (results is None):
         results = []
     
     prec = 0
+    print(f"PID {pid} starting")
     for t in range(n0, n):
         if (t % (n // 20) == 0):
             prec += 1
@@ -340,6 +341,7 @@ def iterateStartVecs(n0, n, objs, results=None, shouldPrint=False) -> tuple[Hit,
         res = twobounce(objs, start, dir)
         results += (res)
         # print(n)
+    print(f"PID {pid} done")
     if (results is not None):
         return results
 
@@ -352,7 +354,7 @@ def multicoreIterate(objs, n=1_000_000):
     otherArgs = (objs, None)
     for i in range(CPU_COUNT):
         shouldPrint = not i  # only true on i=0
-        p = mp.Process(target=iterateStartVecs, args=(i * division, (i + 1) * division, objs, results, shouldPrint))
+        p = mp.Process(target=iterateStartVecs, args=(i * division, (i + 1) * division, objs, results, shouldPrint, i))
         processes.append(p)
         p.start()
     for proc in processes:
