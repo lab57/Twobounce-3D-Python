@@ -8,14 +8,28 @@ import random as r
 
 # import numpy as np
 
-CPU_COUNT = 8  # mp.cpu_count()
-
+CPU_COUNT = mp.cpu_count()
 
 # pprint("")
 
+printf = print
 
-def printIntro():
-    print(r'''
+Q = mp.Queue()
+
+
+def print(s=""):
+    """
+    Perhaps bad practice, but I do not care. Override print() function to print timestamp at the front.
+    :param s: String to print
+    :return: void
+    """
+    st = time.gmtime(time.time())
+    st = time.strftime("%H:%M:%S", st)
+    printf(f"{st} - {s}")
+
+
+def initalize():
+    printf(r'''
  ___  ____                                   ____  _____
 |__ \|  _ \                                 |___ \|  __ \
    ) | |_) | ___  _   _ _ __   ___ ___       __) | |  | |
@@ -334,9 +348,9 @@ def iterateStartVecs(n0, n, objs, results=None, shouldPrint=False, pid=0) -> tup
     :param n0: starting n
     :param n: ending n
     :param objs: list of objects
-    :param results: deprecated?
-    :param shouldPrint: should print precentage
-    :param pid: process id
+    :param results: deprecated? (default: none)
+    :param shouldPrint: should print precentage (default: false)
+    :param pid: process id (default: 0)
     :return: void?
     """
     
@@ -347,9 +361,9 @@ def iterateStartVecs(n0, n, objs, results=None, shouldPrint=False, pid=0) -> tup
     prec = 0
     print(f"PID {pid} starting")
     for t in range(n0, n):
-        if (t % (n // 20) == 0):
-            prec += 1
-            if (shouldPrint):
+        if (shouldPrint):
+            if (t % (n // 20) == 0 and t != 0):
+                prec += 1
                 print(f"{prec * 5}%")
         
         start = Vector(0, t * LENGTH / n, 0)
@@ -400,8 +414,6 @@ _ Multiprocessing?
 
 '''
 if __name__ == "__main__":
-    printIntro()
-    
     print("Loading geometry")
     load = ObjLoader("./")
     objs, tris = load.load("untitled.obj")
@@ -413,7 +425,7 @@ if __name__ == "__main__":
     # vec1 = Vector(5, 0, 1)
     t1 = time.time()
     print("Starting twobounce")
-    n = 10_000_000
+    n = 1_000_000
     ans = multicoreIterate(objs, n=n)
     print("Finished")
     print(f"Simulared {n} rays using {CPU_COUNT} cores in {time.time() - t1: .1f}s")
