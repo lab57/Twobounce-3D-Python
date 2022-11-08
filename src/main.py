@@ -313,6 +313,13 @@ def getStartVec(t: int):
 
 
 def linspace(start, stop, n):
+    """
+    Copy of numpys linspace, with integer divide
+    :param start: start value
+    :param stop: end value
+    :param n: how many divisions between start and end
+    :return: generator for values (can be casted to list)
+    """
     if n == 1:
         yield stop
         return
@@ -322,6 +329,17 @@ def linspace(start, stop, n):
 
 
 def iterateStartVecs(n0, n, objs, results=None, shouldPrint=False, pid=0) -> tuple[Hit, Hit]:
+    """
+    Iterate over source vectors from n0 to n
+    :param n0: starting n
+    :param n: ending n
+    :param objs: list of objects
+    :param results: deprecated?
+    :param shouldPrint: should print precentage
+    :param pid: process id
+    :return: void?
+    """
+    
     LENGTH = 2.5
     if (results is None):
         results = []
@@ -347,6 +365,12 @@ def iterateStartVecs(n0, n, objs, results=None, shouldPrint=False, pid=0) -> tup
 
 
 def multicoreIterate(objs, n=1_000_000):
+    """
+    Create CPU_COUNT processes that will work on a division of the n events, calls iterateStartVecs
+    :param objs: List of objects
+    :param n: Number of events
+    :return: void
+    """
     division = n // CPU_COUNT
     processes = []
     results = []
@@ -389,7 +413,7 @@ if __name__ == "__main__":
     # vec1 = Vector(5, 0, 1)
     t1 = time.time()
     print("Starting twobounce")
-    n = 100_000_000
+    n = 10_000_000
     ans = multicoreIterate(objs, n=n)
     print("Finished")
     print(f"Simulared {n} rays using {CPU_COUNT} cores in {time.time() - t1: .1f}s")
