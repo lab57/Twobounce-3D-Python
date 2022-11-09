@@ -14,8 +14,6 @@ CPU_COUNT = mp.cpu_count()
 
 printf = print
 
-Q = mp.Queue()
-
 
 def print(s=""):
     """
@@ -353,8 +351,9 @@ def iterateStartVecs(n0, n, objs, results=None, shouldPrint=False, pid=0) -> tup
     :param pid: process id (default: 0)
     :return: void?
     """
-    
+    global RES
     LENGTH = 2.5
+    print(f"{n0} {n}")
     if (results is None):
         results = []
     
@@ -372,10 +371,25 @@ def iterateStartVecs(n0, n, objs, results=None, shouldPrint=False, pid=0) -> tup
         # print(dir)
         res = twobounce(objs, start, dir)
         results += (res)
+        # RES.append((res))
+        # Q.put(res)
         # print(n)
     print(f"PID {pid} done")
     if (results is not None):
         return results
+
+
+def multicoreIterateMap(objs, n):
+    division = n // CPU_COUNT
+    results = { }
+    
+    otherArgs = (objs, None)
+    divisionList = [(i * division, (i + 1) * division, objs, None, None, i) for i in range(CPU_COUNT)]
+    print("Divsion list length")
+    print(len(divisionList))
+    with mp.Pool() as pool:
+        res = pool.starmap(iterateStartVecs, divisionList)
+    # print(len(res))
 
 
 def multicoreIterate(objs, n=1_000_000):
@@ -428,5 +442,7 @@ if __name__ == "__main__":
     n = 1_000_000
     ans = multicoreIterate(objs, n=n)
     print("Finished")
+    print("VVV")
+    print(len(RES))
     print(f"Simulared {n} rays using {CPU_COUNT} cores in {time.time() - t1: .1f}s")
     # print(len(ans))
