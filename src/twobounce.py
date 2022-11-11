@@ -204,7 +204,7 @@ class ObjLoader:
             curObject = None
             for line in f.readlines():
                 if line[0] == 'o':
-                    name = line.split(" ")[1]
+                    name = line.split(" ")[1].strip("\n")
                     # print(f"Loading {name}")
                     curObject = TriObject(name, [], [])
                     objects.append(curObject)
@@ -242,6 +242,7 @@ class Hit:
         self.tri = tri
         self.obj = obj
         self.hit = didHit
+        self.n = None
         self.hitDict = {
             "Start point"     : self.start,
             "Direction Vector": self.vec,
@@ -267,7 +268,7 @@ class Hit:
             return f"<HitInfo - hit None>"
 
 
-def checkIntersections(objects: list[TriObject], st: Vector, ray: Vector):
+def checkIntersections(objects: list[TriObject], st: Vector, ray: Vector) -> Hit:
     """
     Finds first intersection of ray starting at st with any object
     
@@ -294,7 +295,7 @@ def checkIntersections(objects: list[TriObject], st: Vector, ray: Vector):
     return Hit(*hitInfo)
 
 
-def twobounce(objects: list[TriObject], st: Vector, ray: Vector):
+def twobounce(objects: list[TriObject], st: Vector, ray: Vector) -> tuple[Hit, Hit]:
     """
     :param objects: List of objects
     :param st: Start of ray
@@ -305,7 +306,7 @@ def twobounce(objects: list[TriObject], st: Vector, ray: Vector):
     # One bounce
     result = checkIntersections(objects, st, ray)
     if not result.hit:
-        return (None, None)
+        return (result, Hit(None, None, None, None, None, False))
     coords = result.coord()  # coords becomes new start
     
     # two bounce
@@ -340,7 +341,16 @@ def linspace(start, stop, n):
         yield start + h * i
 
 
-def iterateStartVecs(n0, n, objs, results=None, shouldPrint=False, pid=0) -> tuple[Hit, Hit]:
+# TODO fix
+def writeToFile(file, res):
+    for i, hit in enumerate(res):
+        if not hit.hit:
+            return
+        else:
+            file.write(f"{hit.n}\t{i}\t{hit.obj.name}\t{hit.start}\t{hit.coord()}\n")
+
+
+def iterateStartVecs(n0, n, objs, results=None, shouldPrint=False, pid=0) -> list[tuple[Hit, Hit]]:
     """
     Iterate over source vectors from n0 to n
     :param n0: starting n
@@ -351,7 +361,6 @@ def iterateStartVecs(n0, n, objs, results=None, shouldPrint=False, pid=0) -> tup
     :param pid: process id (default: 0)
     :return: void?
     """
-    global RES
     LENGTH = 2.5
     print(f"{n0} {n}")
     if (results is None):
@@ -359,9 +368,10 @@ def iterateStartVecs(n0, n, objs, results=None, shouldPrint=False, pid=0) -> tup
     
     prec = 0
     print(f"PID {pid} starting")
+    outFile = open(f"./output/output_{pid}.txt", "w")
     for t in range(n0, n):
-        if (shouldPrint):
-            if (t % (n // 20) == 0 and t != 0):
+        if shouldPrint:
+            if t % (n // 20) == 0 and t != 0:
                 prec += 1
                 print(f"{prec * 5}%")
         
@@ -370,12 +380,17 @@ def iterateStartVecs(n0, n, objs, results=None, shouldPrint=False, pid=0) -> tup
         # print(start)
         # print(dir)
         res = twobounce(objs, start, dir)
-        results += (res)
+        res[0].n = t
+        res[1].n = t
+        
+        results += res
+        writeToFile(outFile, res)
         # RES.append((res))
         # Q.put(res)
         # print(n)
+    outFile.close()
     print(f"PID {pid} done")
-    if (results is not None):
+    if results is not None:
         return results
 
 
@@ -387,7 +402,7 @@ def multicoreIterateMap(objs, n):
     divisionList = [(i * division, (i + 1) * division, objs, None, None, i) for i in range(CPU_COUNT)]
     print("Divsion list length")
     print(len(divisionList))
-    with mp.Pool() as pool:
+    with mp.Pool(CPU_COUNT) as pool:
         res = pool.starmap(iterateStartVecs, divisionList)
     # print(len(res))
 
@@ -443,6 +458,5 @@ if __name__ == "__main__":
     ans = multicoreIterate(objs, n=n)
     print("Finished")
     print("VVV")
-    print(len(RES))
     print(f"Simulared {n} rays using {CPU_COUNT} cores in {time.time() - t1: .1f}s")
     # print(len(ans))

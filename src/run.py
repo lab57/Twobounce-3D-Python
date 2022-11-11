@@ -10,7 +10,7 @@ from twobounce import *
                   labarrett@umass.edu
 '''
 
-N = 10_000_000
+N = 500
 
 if __name__ == "__main__":
     initalize()
@@ -24,7 +24,7 @@ if __name__ == "__main__":
     t1 = time.time()
     print()
     print("Starting twobounce")
-    ans = multicoreIterateMap(objs, n=N)
+    ans = multicoreIterate(objs, n=N)
     print("Finished")
     print(f"Simulared {N} rays using {CPU_COUNT} cores in {time.time() - t1: .2f}s")
     # print(len(ans))
