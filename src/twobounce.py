@@ -163,11 +163,12 @@ class Triangle:
 
 
 class TriObject:
-    def __init__(self, name: str, triangles: list[Triangle], points: list[Vector]):
+    def __init__(self, name: str, triangles: list[Triangle], points: list[Vector], critical: bool):
         self.name = name
         self.triangles = triangles
         self.points = points
         self.bounding_box = None
+        self.critial = critical
     
     def calcBoundingBox(self):
         minX = min([vec.x for vec in self.points])
@@ -203,10 +204,12 @@ class ObjLoader:
         with open(self.path + filename, "r") as f:
             curObject = None
             for line in f.readlines():
-                if line[0] == 'o':
+                if line[0] in ['o', 'g']:
                     name = line.split(" ")[1].strip("\n")
+                    args = name.split("-")
+                    
                     # print(f"Loading {name}")
-                    curObject = TriObject(name, [], [])
+                    curObject = TriObject(name, [], [], "crit" in args)
                     objects.append(curObject)
                 if line[0] == "#":
                     continue
@@ -311,18 +314,11 @@ def twobounce(objects: list[TriObject], st: Vector, ray: Vector) -> tuple[Hit, H
     
     # two bounce
     n = result.tri.normal  # normal vector to triangle
-    new_r = ray - n * 2 * (ray.dot(n))  # new direction vector from reflection
-    objects.remove(result.obj)  # remove originating structure from objects to avoid floating point error causing hit
+    # new_r = ray - n * 2 * (ray.dot(n))  # new direction vector from reflection
+    new_r = ray - n * ((ray * 2).dot(n) / (abs(n) * abs(n)))
+    # objects.remove(result.obj)  # remove originating structure from objects to avoid floating point error causing hit
     result2 = checkIntersections(objects, coords, new_r)
     return result, result2
-
-
-def getStartVec(t: int):
-    """
-    Function that parameterizes starting vectors
-    :param t:
-    :return:
-    """
 
 
 def linspace(start, stop, n):
@@ -341,16 +337,15 @@ def linspace(start, stop, n):
         yield start + h * i
 
 
-# TODO fix
 def writeToFile(file, res):
     for i, hit in enumerate(res):
         if not hit.hit:
             return
         else:
-            file.write(f"{hit.n}\t{i}\t{hit.obj.name}\t{hit.start}\t{hit.coord()}\n")
+            file.write(f"{hit.n}\t{i}\t{hit.obj.name :>20}\t{hit.start}\t{hit.coord()}\n")
 
 
-def iterateStartVecs(n0, n, objs, results=None, shouldPrint=False, pid=0) -> list[tuple[Hit, Hit]]:
+def iterateStartVecs(n0, n, N, objs, results=None, shouldPrint=False, pid=0) -> dict:
     """
     Iterate over source vectors from n0 to n
     :param n0: starting n
@@ -361,54 +356,68 @@ def iterateStartVecs(n0, n, objs, results=None, shouldPrint=False, pid=0) -> lis
     :param pid: process id (default: 0)
     :return: void?
     """
-    LENGTH = 2.5
-    print(f"{n0} {n}")
+    LENGTH = 500  # length of "pencil"
     if (results is None):
         results = []
     
-    prec = 0
-    print(f"PID {pid} starting")
+    stats = {
+        "num_rays"    : 0,
+        "hit_obj"     : 0,
+        "hit_critical": 0,
+    }
+    
+    prec = 0  # percent tracker
+    print(f"PID {pid} starting (n -> {n0}-{n})")
     outFile = open(f"./output/output_{pid}.txt", "w")
     for t in range(n0, n):
-        if shouldPrint:
+        if pid == 0:  # percentage, not the most accurate and should change at some point
             if t % (n // 20) == 0 and t != 0:
                 prec += 1
                 print(f"{prec * 5}%")
         
-        start = Vector(0, t * LENGTH / n, 0)
-        dir = Vector(r.random(), r.random(), r.random())
-        # print(start)
-        # print(dir)
+        start = Vector(0, 250 - t * LENGTH / N, 50)
+        # start = Vector(0, 0, 50)
+        ang = r.random() * 2 * math.pi  # all angles 0 to 2pi
+        dir = Vector(math.cos(ang), math.sin(ang), (r.random() - .5) * 2)  # TODO fix
+        
         res = twobounce(objs, start, dir)
         res[0].n = t
         res[1].n = t
+        ##########################################################
+        # Get stats
+        # Track rays that hit critical geometry at any point in their path
+        # or that hit objects at any point in their path
+        thisHits = 0
+        thisCrits = 0
+        for hit in res:
+            if hit.obj and hit.obj.critial:
+                thisCrits += 1
+            if hit.hit:
+                thisHits += 1
+        stats["hit_critical"] += 1 if thisCrits else 0
+        stats["hit_obj"] += 1 if thisHits else 0
+        stats["num_rays"] += 1
         
         results += res
         writeToFile(outFile, res)
-        # RES.append((res))
-        # Q.put(res)
-        # print(n)
+    
     outFile.close()
     print(f"PID {pid} done")
     if results is not None:
-        return results
+        return stats
 
 
-def multicoreIterateMap(objs, n):
-    division = n // CPU_COUNT
-    results = { }
-    
-    otherArgs = (objs, None)
-    divisionList = [(i * division, (i + 1) * division, objs, None, None, i) for i in range(CPU_COUNT)]
-    print("Divsion list length")
-    print(len(divisionList))
+def multicoreIterateMap(objs, N) -> list[dict]:
+    division = N // CPU_COUNT
+    divisionList = [(i * division, (i + 1) * division, N, objs, None, None, i) for i in range(CPU_COUNT)]
     with mp.Pool(CPU_COUNT) as pool:
         res = pool.starmap(iterateStartVecs, divisionList)
-    # print(len(res))
+    return res
 
 
-def multicoreIterate(objs, n=1_000_000):
+def _multicoreIterate(objs, n=1_000_000):
     """
+    DEPRECATED, use multicoreIterateMap instead
     Create CPU_COUNT processes that will work on a division of the n events, calls iterateStartVecs
     :param objs: List of objects
     :param n: Number of events
