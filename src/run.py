@@ -10,7 +10,7 @@ from twobounce import *
                   labarrett@umass.edu
 '''
 
-N = 1_000_000
+N = 10_000_000
 
 
 def printResults(stats: list[dict]) -> None:
@@ -29,8 +29,8 @@ def printResults(stats: list[dict]) -> None:
         hitCrit += stat['hit_critical']
         hitObj += stat['hit_obj']
     
-    print(f"Hit critical geometry: {hitCrit}, {hitCrit / (totalRays) * 100: .3f}%")
-    print(f"Hit any geometry: {hitObj / (totalRays) * 100: .1f}%")
+    print(f"Hit critical geometry: {hitCrit}, {hitCrit / totalRays * 100: .3f}%")
+    print(f"Hit any geometry: {hitObj / totalRays * 100: .1f}%")
 
 
 def main() -> None:

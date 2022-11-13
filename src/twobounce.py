@@ -5,6 +5,7 @@ import time
 from functools import partial
 from pprint import pprint
 import random as r
+from math import sin, cos
 
 # import numpy as np
 
@@ -377,8 +378,10 @@ def iterateStartVecs(n0, n, N, objs, results=None, shouldPrint=False, pid=0) -> 
         
         start = Vector(0, 250 - t * LENGTH / N, 50)
         # start = Vector(0, 0, 50)
-        ang = r.random() * 2 * math.pi  # all angles 0 to 2pi
-        dir = Vector(math.cos(ang), math.sin(ang), (r.random() - .5) * 2)  # TODO fix
+        theta = r.random() * 2 * math.pi
+        phi = r.random() * math.pi
+        
+        dir = Vector(sin(phi) * cos(theta), sin(phi) * sin(theta), cos(phi))  # TODO fix
         
         res = twobounce(objs, start, dir)
         res[0].n = t
@@ -443,29 +446,11 @@ def _multicoreIterate(objs, n=1_000_000):
 
 '''
 TODO checklist:
+_ Bounding box? -> May not be needed, unsure until more complex geometry is implemented
 _ Change ObjLoader -> in progress -> Done
 _ Make hit information class -> Done
-_ Bounding box?
 _ Make method to check interesctions and calculate reflections -> in progress -> Done
-_ Impelment emitter and number of vectors -> in progress
-_ Multiprocessing?
+_ Impelment emitter and number of vectors -> in progress -> Done
+_ Multiprocessing? -> Done
 
 '''
-if __name__ == "__main__":
-    print("Loading geometry")
-    load = ObjLoader("./")
-    objs, tris = load.load("untitled.obj")
-    print(f"Done")
-    print(f"{len(objs)} objects, {len(tris)} polygons\n")
-    
-    # test ray
-    # start1 = Vector(-3, 0, 0)
-    # vec1 = Vector(5, 0, 1)
-    t1 = time.time()
-    print("Starting twobounce")
-    n = 1_000_000
-    ans = multicoreIterate(objs, n=n)
-    print("Finished")
-    print("VVV")
-    print(f"Simulared {n} rays using {CPU_COUNT} cores in {time.time() - t1: .1f}s")
-    # print(len(ans))
