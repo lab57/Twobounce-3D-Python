@@ -1,5 +1,5 @@
 from twobounce import *
-
+import sys
 '''
  ___  ____                                   ____  _____
 |__ \|  _ \                                 |___ \|  __ \
@@ -10,7 +10,9 @@ from twobounce import *
                   labarrett@umass.edu
 '''
 
-N = 100_000
+
+#default to 1 million rays if input not provided
+N = int(sys.argv[1]) if sys.argv[1] else 1_000_000
 
 
 def printResults(stats: list[dict]) -> None:
