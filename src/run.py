@@ -12,7 +12,7 @@ import sys
 
 
 #default to 1 million rays if input not provided
-N = int(sys.argv[1]) if sys.argv[1] else 1_000_000
+N = int(sys.argv[1]) if len(sys.argv)>1 else 1_000_000
 
 
 def printResults(stats: list[dict]) -> None:
@@ -35,7 +35,7 @@ def printResults(stats: list[dict]) -> None:
     print(f"Hit any geometry: {hitObj / totalRays * 100: .1f}%")
 
 
-def main() -> None:
+def main(N=N) -> None:
     """
     Main function for running sim
     :return: None
@@ -66,6 +66,19 @@ def oneVec() -> None:
     pprint(r[1].hitDict)
 
 
+def timePerformance() -> None:
+    x = linspace(2000, 100_000, 100)
+    y = []
+    for n in linspace(2000, 100_000, 100):
+        t1 = time.perf_counter()
+        main(n)
+        t2 = time.perf_counter()
+        y.append(t2-t1)
+    print(x)
+    print(y)
+
+
+
 if __name__ == "__main__":
     initalize()
     print("Loading geometry")
@@ -76,4 +89,5 @@ if __name__ == "__main__":
     print(f"{len(objs)} objects, {len(tris)} polygons\n")
     # oneVec()
     main()
+    #timePerformance()
     # print(len(ans))

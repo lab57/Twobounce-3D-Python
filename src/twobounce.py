@@ -9,7 +9,7 @@ from math import sin, cos
 
 # import numpy as np
 
-CPU_COUNT = mp.cpu_count()
+CPU_COUNT = mp.cpu_count() - 1
 
 # pprint("")
 
@@ -376,13 +376,13 @@ def iterateStartVecs(n0, n, N, objs, results=None, shouldPrint=False, pid=0) -> 
                 prec += 1
                 print(f"{prec * 5}%")
         
-        start = Vector(0, 250 - t * LENGTH / N, 50)
-        # start = Vector(0, 0, 50)
+        #start = Vector(0, 250 - t * LENGTH / N, 50)
+        start = Vector(0, 0, 50)
         theta = r.random() * 2 * math.pi
         phi = r.random() * math.pi
         
-        dir = Vector(sin(phi) * cos(theta), sin(phi) * sin(theta), cos(phi))  # TODO fix
-        
+        #dir = Vector(sin(phi) * cos(theta), sin(phi) * sin(theta), cos(phi))  # TODO fix
+        dir = Vector(cos(theta), sin(theta), 0)
         res = twobounce(objs, start, dir)
         res[0].n = t
         res[1].n = t
@@ -402,8 +402,9 @@ def iterateStartVecs(n0, n, N, objs, results=None, shouldPrint=False, pid=0) -> 
         stats["num_rays"] += 1
         
         results += res
-        writeToFile(outFile, res)
-    
+        if thisCrits:
+            writeToFile(outFile, res)
+
     outFile.close()
     print(f"PID {pid} done")
     if results is not None:
