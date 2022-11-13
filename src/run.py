@@ -10,7 +10,7 @@ from twobounce import *
                   labarrett@umass.edu
 '''
 
-N = 10_000_000
+N = 100_000
 
 
 def printResults(stats: list[dict]) -> None:
@@ -45,8 +45,10 @@ def main() -> None:
     ans = multicoreIterateMap(objs, N)
     printResults(ans)
     print("Finished")
-    print(f"Simulated {N} rays using {CPU_COUNT} cores in {time.time() - t1: .2f}s")
-    
+    deltat = time.time() - t1
+    print(f"Simulated {N} rays using {CPU_COUNT} cores in {deltat: .2f}s")
+    print(f"Time per 1k rays: {deltat/(N/1000) : .2g}s")
+    print(f"Time per 1k rays per core: {deltat / ((N/1000)/mp.cpu_count()) : .2g}s")
     # check individual vector
 
 
