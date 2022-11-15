@@ -111,6 +111,10 @@ class Vector:
 
 
 class Triangle:
+    """
+    Object representing a triangle made up of 3 Vectors: a, b, and c
+
+    """
     
     def __init__(self, coords):
         self.a = coords[0]
@@ -118,9 +122,17 @@ class Triangle:
         self.c = coords[2]
         self.normal = None
     
-    def intersect(self, ray_start, ray_vec) -> (bool, tuple):
+    def intersect(self, ray_start, ray_vec) -> tuple[bool, Vector]:
+        """
+        Detect intersection between this triangle and ray_vec originating from ray_start
+        
+        :param ray_start: Vector indicating the origin of the ray
+        :param ray_vec: Vector indicating direction of the ray
+        :return: bool indicating if it was a hit, and vector indicating parameterized t, and local coordinates u, v
+        """
         # define a null intersection
-        null_inter = [None, None, None]  # np.array([np.nan, np.nan, np.nan])
+        #null_inter = [None, None, None]  # np.array([np.nan, np.nan, np.nan])
+        null_inter = Vector(None, None, None)
         # ray_start = np.asarray(ray_start)
         # ray_vec = np.asarray(ray_vec)
         
