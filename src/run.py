@@ -1,5 +1,6 @@
 from twobounce import *
 import sys
+
 '''
  ___  ____                                   ____  _____
 |__ \|  _ \                                 |___ \|  __ \
@@ -10,9 +11,8 @@ import sys
                   labarrett@umass.edu
 '''
 
-
-#default to 1 million rays if input not provided
-N = int(sys.argv[1]) if len(sys.argv)>1 else 1_000_000
+# default to 1 million rays if input not provided
+N = int(sys.argv[1]) if len(sys.argv) > 1 else 1_000_000
 
 
 def printResults(stats: list[dict]) -> None:
@@ -49,8 +49,8 @@ def main(N=N) -> None:
     print("Finished")
     deltat = time.time() - t1
     print(f"Simulated {N} rays using {CPU_COUNT} cores in {deltat: .2f}s")
-    print(f"Time per 1k rays: {deltat/(N/1000) : .2g}s")
-    print(f"Time per 1k rays per core: {deltat / ((N/1000)/mp.cpu_count()) : .2g}s")
+    print(f"Time per 1k rays: {deltat / (N / 1000) : .2g}s")
+    print(f"Time per 1k rays per core: {deltat / ((N / 1000) / mp.cpu_count()) : .2g}s")
     # check individual vector
 
 
@@ -73,10 +73,9 @@ def timePerformance() -> None:
         t1 = time.perf_counter()
         main(n)
         t2 = time.perf_counter()
-        y.append(t2-t1)
+        y.append(t2 - t1)
     print(x)
     print(y)
-
 
 
 if __name__ == "__main__":
@@ -89,5 +88,5 @@ if __name__ == "__main__":
     print(f"{len(objs)} objects, {len(tris)} polygons\n")
     # oneVec()
     main()
-    #timePerformance()
+    # timePerformance()
     # print(len(ans))

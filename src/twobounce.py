@@ -2,15 +2,17 @@ import copy
 import math
 import multiprocessing as mp
 import time
-from functools import partial
-from pprint import pprint
 import random as r
 from math import sin, cos
+
+from src.utilities import Triangle, Vector
 
 # import numpy as np
 
 CPU_COUNT = mp.cpu_count() - 1
-
+TEXTURE_SIZE = 25
+HIT1_C = (255, 0, 0)
+HIT2_C = (0, 255, 0)
 # pprint("")
 
 printf = print
@@ -40,141 +42,6 @@ Luc Barrett, Nov. 2022
     print(f"CPU Core Count: {CPU_COUNT}\n")
 
 
-class Vector:
-    def __init__(self, x, y, z):
-        self.x = x
-        self.y = y
-        self.z = z
-        self.arr = [self.x, self.y, self.z]
-    
-    def norm(self):
-        """
-        :return: Normalized copy of self
-        """
-        return self / abs(self)
-    
-    def dot(self, other: 'Vector') -> float:
-        """
-        :param other: Vector
-        :return: Dot product of self and other
-        """
-        return self.x * other.x + self.y * other.y + self.z * other.z
-    
-    def cross(self, other: 'Vector') -> 'Vector':
-        """
-        :param other: Vector
-        :return: Cross product of self and other
-        """
-        x = self.y * other.z - self.z * other.y
-        y = self.z * other.x - self.x * other.z
-        z = self.x * other.y - self.y * other.x
-        return Vector(x, y, z)
-    
-    def calcCoord(self, st: 'Vector', t: float):
-        """
-        :param st: Starting point
-        :param t: Parameterization
-        :return: 3D coordinates corresponding to parameterization t if self starts at st
-        """
-        parallel = self - st
-        coord = st + self * t
-        return coord
-    
-    def __repr__(self):
-        return f"<{self.x : .1f}, {self.y : .1f}, {self.z : .1f}>"
-    
-    def __sub__(self, other):
-        return Vector(self.x - other.x, self.y - other.y, self.z - other.z)
-    
-    def __add__(self, other):
-        return Vector(self.x + other.x, self.y + other.y, self.z + other.z)
-    
-    def __mul__(self, other):
-        new = copy.copy(self)
-        new.x *= other
-        new.y *= other
-        new.z *= other
-        return new
-    
-    def __truediv__(self, other):
-        new = copy.copy(self)
-        new.x /= other
-        new.y /= other
-        new.z /= other
-        return new
-    
-    def __abs__(self):
-        """
-        :return: Norm of self
-        """
-        return math.sqrt(self.x ** 2 + self.y ** 2 + self.z ** 2)
-
-
-class Triangle:
-    """
-    Object representing a triangle made up of 3 Vectors: a, b, and c
-
-    """
-    
-    def __init__(self, coords):
-        self.a = coords[0]
-        self.b = coords[1]
-        self.c = coords[2]
-        self.normal = None
-    
-    def intersect(self, ray_start, ray_vec) -> tuple[bool, Vector]:
-        """
-        Detect intersection between this triangle and ray_vec originating from ray_start
-        
-        :param ray_start: Vector indicating the origin of the ray
-        :param ray_vec: Vector indicating direction of the ray
-        :return: bool indicating if it was a hit, and vector indicating parameterized t, and local coordinates u, v
-        """
-        # define a null intersection
-        #null_inter = [None, None, None]  # np.array([np.nan, np.nan, np.nan])
-        null_inter = Vector(None, None, None)
-        # ray_start = np.asarray(ray_start)
-        # ray_vec = np.asarray(ray_vec)
-        
-        # break down triangle into the individual points
-        v1, v2, v3 = self.a, self.b, self.c
-        eps = 0.000001
-        
-        # compute edges
-        edge1 = v2 - v1
-        edge2 = v3 - v1
-        # pvec = np.cross(ray_vec, edge2)
-        pvec = ray_vec.cross(edge2)
-        det = edge1.dot(pvec)
-        
-        if abs(det) < eps:  # no intersection
-            # print('fail1')
-            return False, null_inter
-        inv_det = 1.0 / det
-        tvec = ray_start - v1
-        u = tvec.dot(pvec) * inv_det
-        # print(u)
-        if u < 0.0 or u > 1.0:  # if not intersection
-            # print('fail2')
-            return False, null_inter
-        
-        qvec = tvec.cross(edge1)
-        v = ray_vec.dot(qvec) * inv_det
-        if v < 0.0 or u + v > 1.0:  # if not intersection
-            #  print('fail3')
-            return False, null_inter
-        
-        t = edge2.dot(qvec) * inv_det
-        if t < eps:
-            #   print('fail4')
-            return False, null_inter
-        
-        return True, Vector(t, u, v)
-    
-    def __repr__(self):
-        return f"Tri[{self.a}, {self.b}, {self.c}]"
-
-
 class TriObject:
     def __init__(self, name: str, triangles: list[Triangle], points: list[Vector], critical: bool):
         self.name = name
@@ -182,6 +49,20 @@ class TriObject:
         self.points = points
         self.bounding_box = None
         self.critial = critical
+        self.texture = None
+    
+    def initTexture(self, size: int):
+        self.texture = [[(0, 0, 0) for i in range(size)] for j in range(size)]
+    
+    def setTexture(self, hit: 'Hit'):
+        # get coord
+        print(hit.hitDict)
+        x1 = hit.tri.at * (1 - hit.u - hit.v)
+        x2 = hit.tri.bt * hit.u
+        x3 = hit.tri.ct * hit.v
+        xy = x1 + x2 + x3
+        printf("text", xy)
+        self.texture[round(xy.u * TEXTURE_SIZE)][round(xy.v * TEXTURE_SIZE)] = (255, 0, 0)
     
     def calcBoundingBox(self):
         minX = min([vec.x for vec in self.points])
@@ -199,6 +80,10 @@ class TriObject:
 
 
 class ObjLoader:
+    """
+    Loader for .obj files
+    """
+    
     def __init__(self, path):
         """
         :param path: Path to folder containing object files. Ex: "./"
@@ -251,19 +136,24 @@ class ObjLoader:
 
 
 class Hit:
-    def __init__(self, start: Vector, vec: Vector, t: float, tri: Triangle, obj: TriObject, didHit: bool):
+    def __init__(self, start: Vector, vec: Vector, t: float, tri: Triangle, obj: TriObject, didHit: bool, u=None,
+                 v=None):
         self.start = start
         self.vec = vec
         self.t = t
         self.tri = tri
         self.obj = obj
         self.hit = didHit
+        self.u = None
+        self.v = None
         self.n = None
         self.hitDict = {
             "Start point"     : self.start,
             "Direction Vector": self.vec,
             "t"               : self.t,
             "Hit object"      : self.obj,
+            "u"               : self.u,
+            "v"               : self.v
             # "Hit triangle"    : self.tri
         }
         if self.obj:
@@ -297,7 +187,7 @@ def checkIntersections(objects: list[TriObject], st: Vector, ray: Vector) -> Hit
     :return: Hit class containing hit info
     """
     min_t = math.inf
-    hitInfo = [st, ray, None, None, None, None]
+    hitInfo = [st, ray, None, None, None, None, None, None]
     for obj in objects:
         for tri in obj.triangles:
             hit, vec = tri.intersect(st, ray)
@@ -307,8 +197,15 @@ def checkIntersections(objects: list[TriObject], st: Vector, ray: Vector) -> Hit
                 hitInfo[3] = tri
                 hitInfo[4] = obj
                 hitInfo[5] = hit
-    
-    return Hit(*hitInfo)
+                printf("sdfdf", vec.x)
+                hitInfo[6] = vec.u
+                hitInfo[7] = vec.v
+    printf("sdfffffff", hitInfo[6])
+    h = Hit(*hitInfo)
+    h.u = hitInfo[6]
+    h.v = hitInfo[7]
+    print(h.u)
+    return h
 
 
 def twobounce(objects: list[TriObject], st: Vector, ray: Vector) -> tuple[Hit, Hit]:
@@ -324,6 +221,12 @@ def twobounce(objects: list[TriObject], st: Vector, ray: Vector) -> tuple[Hit, H
     if not result.hit:
         return (result, Hit(None, None, None, None, None, False))
     coords = result.coord()  # coords becomes new start
+    print(coords)
+    
+    # set texture
+    print(result.u)
+    if result.hit:
+        result.obj.setTexture(result)
     
     # two bounce
     n = result.tri.normal  # normal vector to triangle
@@ -331,6 +234,9 @@ def twobounce(objects: list[TriObject], st: Vector, ray: Vector) -> tuple[Hit, H
     new_r = ray - n * ((ray * 2).dot(n) / (abs(n) * abs(n)))
     # objects.remove(result.obj)  # remove originating structure from objects to avoid floating point error causing hit
     result2 = checkIntersections(objects, coords, new_r)
+    if (result2.hit):
+        result2.obj.setTexture(result2)
+    
     return result, result2
 
 
@@ -388,12 +294,12 @@ def iterateStartVecs(n0, n, N, objs, results=None, shouldPrint=False, pid=0) -> 
                 prec += 1
                 print(f"{prec * 5}%")
         
-        #start = Vector(0, 250 - t * LENGTH / N, 50)
+        # start = Vector(0, 250 - t * LENGTH / N, 50)
         start = Vector(0, 0, 50)
         theta = r.random() * 2 * math.pi
         phi = r.random() * math.pi
         
-        #dir = Vector(sin(phi) * cos(theta), sin(phi) * sin(theta), cos(phi))  # TODO fix
+        # dir = Vector(sin(phi) * cos(theta), sin(phi) * sin(theta), cos(phi))  # TODO fix
         dir = Vector(cos(theta), sin(theta), 0)
         res = twobounce(objs, start, dir)
         res[0].n = t
@@ -416,7 +322,7 @@ def iterateStartVecs(n0, n, N, objs, results=None, shouldPrint=False, pid=0) -> 
         results += res
         if thisCrits:
             writeToFile(outFile, res)
-
+    
     outFile.close()
     print(f"PID {pid} done")
     if results is not None:
