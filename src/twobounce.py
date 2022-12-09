@@ -1,4 +1,5 @@
 import copy
+import functools
 import math
 import multiprocessing as mp
 import time
@@ -7,6 +8,7 @@ from pprint import pprint
 import random as r
 from math import sin, cos
 from GeometricObjects import *
+from tqdm import tqdm
 
 # import numpy as np
 
@@ -214,7 +216,7 @@ def writeToFile(file, res: list[Hit, Hit]):
                 f"{hit.obj.name}\t{i}\t{hit.u}\t{hit.v}\t{hit.tri.at.u}\t{hit.tri.at.v}\t{hit.tri.bt.u}\t{hit.tri.bt.v}\t{hit.tri.ct.u}\t{hit.tri.ct.v}\n")
 
 
-def iterateStartVecs(n0, n, N, objs, results=None, shouldPrint=False, pid=0) -> dict:
+def iterateStartVecs(n0, n, N, objs, results=None, shouldPrint=False, pid=0, lock=None) -> dict:
     """
     Iterate over source vectors from n0 to n
     :param n0: starting n
@@ -236,14 +238,20 @@ def iterateStartVecs(n0, n, N, objs, results=None, shouldPrint=False, pid=0) -> 
     }
     
     prec = 0  # percent tracker
-    print(f"PID {pid} starting (n -> {n0}-{n})")
+    # print(f"PID {pid} starting (n -> {n0}-{n})")
     outFile = open(f"./output/output_{pid}.txt", "w")
+    # for t in tqdm(range(n0, n), position=pid, leave=True, smoothing=0):
+    with lock:
+        bar = tqdm(position=pid, leave=False, total=n - n0,
+                   desc=str(pid), colour='green')
     for t in range(n0, n):
         if pid == 0:  # percentage, not the most accurate and should change at some point
             if t % (n // 20) == 0 and t != 0:
                 prec += 1
-                print(f"{prec * 5}%")
-        
+                # print(f"{prec * 5}%")
+        if t % (n // 50) == 0:
+            with lock:
+                bar.update(n // 50)
         # start = Vector(0, 250 - t * LENGTH / N, 50)
         start = Vector(0, 0, 50)
         theta = r.random() * 2 * math.pi
@@ -272,19 +280,27 @@ def iterateStartVecs(n0, n, N, objs, results=None, shouldPrint=False, pid=0) -> 
         results += res
         if thisCrits:
             writeToFile(outFile, res)
-    
+    with lock:
+        bar.close()
     outFile.close()
-    print(f"PID {pid} done")
+    # print(f"PID {pid} done")
     if results is not None:
         return stats
 
 
 def multicoreIterateMap(objs, N) -> list[dict]:
     division = N // CPU_COUNT
-    divisionList = [(i * division, (i + 1) * division, N, objs, None, None, i) for i in range(CPU_COUNT)]
+    lock = mp.Manager().Lock()
+    divisionList = [(i * division, (i + 1) * division, N, objs, None, None, i, lock) for i in range(CPU_COUNT)]
     with mp.Pool(CPU_COUNT) as pool:
         res = pool.starmap(iterateStartVecs, divisionList)
+    printf()
     return res
+
+
+# objs, ns, results=None, pid=0)
+def test(sd, results=None):
+    print(sd)
 
 
 def _multicoreIterate(objs, n=1_000_000):

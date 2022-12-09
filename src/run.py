@@ -14,7 +14,7 @@ import sys
 '''
 
 # default to 1 million rays if input not provided
-N = int(sys.argv[1]) if len(sys.argv) > 1 else 20_000
+N = int(sys.argv[1]) if len(sys.argv) > 1 else 2_000_000
 
 
 def printResults(stats: list[dict]) -> None:

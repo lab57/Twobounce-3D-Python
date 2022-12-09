@@ -17,8 +17,7 @@ Ke 0.000000 0.000000 0.000000
 Ni 1.450000
 d 1.000000
 illum 2
-map_Kd /Users/lucb/Desktop/Research/3D_twobounce/PythonTest/textures/Floor_mtl.png
-
+map_Kd ./textures/Floor_mtl.png
 newmtl crit-Shield_mtl
 Ns 250.000000
 Ka 1.000000 1.000000 1.000000
