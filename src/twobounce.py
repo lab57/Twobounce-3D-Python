@@ -251,7 +251,7 @@ def iterateStartVecs(n0, n, N, objs, results=None, shouldPrint=False, pid=0, loc
                 # print(f"{prec * 5}%")
         if t % div == 0:
             with lock:
-                bar.update(n // 750)
+                bar.update(div)
         # start = Vector(0, 250 - t * LENGTH / N, 50)
         start = Vector(0, 0, 50)
         theta = r.random() * 2 * math.pi
