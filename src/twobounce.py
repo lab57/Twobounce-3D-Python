@@ -12,7 +12,7 @@ from tqdm import tqdm
 
 # import numpy as np
 
-CPU_COUNT = mp.cpu_count() - 1
+CPU_COUNT = mp.cpu_count()
 
 # pprint("")
 
@@ -243,15 +243,15 @@ def iterateStartVecs(n0, n, N, objs, results=None, shouldPrint=False, pid=0, loc
     # for t in tqdm(range(n0, n), position=pid, leave=True, smoothing=0):
     with lock:
         bar = tqdm(position=pid, leave=False, total=n - n0,
-                   desc=str(pid), colour='green')
+                   desc=str(pid), colour='green', ascii=True)
     for t in range(n0, n):
         if pid == 0:  # percentage, not the most accurate and should change at some point
             if t % (n // 20) == 0 and t != 0:
                 prec += 1
                 # print(f"{prec * 5}%")
-        if t % (n // 50) == 0:
+        if t % (n // 750) == 0:
             with lock:
-                bar.update(n // 50)
+                bar.update(n // 750)
         # start = Vector(0, 250 - t * LENGTH / N, 50)
         start = Vector(0, 0, 50)
         theta = r.random() * 2 * math.pi
@@ -280,9 +280,9 @@ def iterateStartVecs(n0, n, N, objs, results=None, shouldPrint=False, pid=0, loc
         results += res
         if thisCrits:
             writeToFile(outFile, res)
-    with lock:
-        bar.close()
+    bar.close()
     outFile.close()
+    
     # print(f"PID {pid} done")
     if results is not None:
         return stats
