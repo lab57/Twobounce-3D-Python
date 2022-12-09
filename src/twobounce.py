@@ -230,7 +230,7 @@ def iterateStartVecs(n0, n, N, objs, results=None, shouldPrint=False, pid=0, loc
     LENGTH = 500  # length of "pencil"
     if (results is None):
         results = []
-    
+    div = ((n - n0) // 750)
     stats = {
         "num_rays"    : 0,
         "hit_obj"     : 0,
@@ -249,7 +249,7 @@ def iterateStartVecs(n0, n, N, objs, results=None, shouldPrint=False, pid=0, loc
             if t % (n // 20) == 0 and t != 0:
                 prec += 1
                 # print(f"{prec * 5}%")
-        if t % (n // 750) == 0:
+        if t % div == 0:
             with lock:
                 bar.update(n // 750)
         # start = Vector(0, 250 - t * LENGTH / N, 50)
