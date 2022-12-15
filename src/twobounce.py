@@ -230,7 +230,6 @@ def iterateStartVecs(n0, n, N, objs, results=None, shouldPrint=False, pid=0, loc
     LENGTH = 500  # length of "pencil"
     if (results is None):
         results = []
-    div = ((n - n0) // 750)
     stats = {
         "num_rays"    : 0,
         "hit_obj"     : 0,
@@ -238,28 +237,31 @@ def iterateStartVecs(n0, n, N, objs, results=None, shouldPrint=False, pid=0, loc
     }
     
     prec = 0  # percent tracker
-    # print(f"PID {pid} starting (n -> {n0}-{n})")
     outFile = open(f"./output/output_{pid}.txt", "w")
-    # for t in tqdm(range(n0, n), position=pid, leave=True, smoothing=0):
-    with lock:
+
+    with lock: #show progress bars (sem lock to prevent overwriting each other)
         bar = tqdm(position=pid, leave=False, total=n - n0,
-                   desc=str(pid), colour='green', ascii=True)
+                   desc=f"{pid : >2}", colour='green', ascii=True)
+    
+    div = ((n - n0) // 7500) #used for progress bar
+
+
     for t in range(n0, n):
-        if pid == 0:  # percentage, not the most accurate and should change at some point
-            if t % (n // 20) == 0 and t != 0:
-                prec += 1
-                # print(f"{prec * 5}%")
-        if t % div == 0:
+        if t % 7500 == 0: #update progress bar in some interval 
             with lock:
-                bar.update(div)
-        # start = Vector(0, 250 - t * LENGTH / N, 50)
-        start = Vector(0, 0, 50)
-        theta = r.random() * 2 * math.pi
-        phi = r.random() * math.pi
+                bar.update(7500)
+                
+        ###############################################################
+        # DEFINE VECTOR ITERATION
+        # start = Vector(0, 250 - t * LENGTH / N, 50) # moving point
+        start = Vector(0, 0, 50) #static point
+        theta = r.random() * 2 * math.pi #random theta
+        phi = r.random() * math.pi #random phi
         
-        dir = Vector(sin(phi) * cos(theta), sin(phi) * sin(theta), cos(phi))  # TODO fix
+        dir = Vector(sin(phi) * cos(theta), sin(phi) * sin(theta), cos(phi))  # use spherical coords to calculate direction vector
         # dir = Vector(cos(theta), sin(theta), 0)
-        res = twobounce(objs, start, dir)
+
+        res = twobounce(objs, start, dir) #call two bounces and get responses
         res[0].n = t
         res[1].n = t
         ##########################################################
@@ -276,24 +278,28 @@ def iterateStartVecs(n0, n, N, objs, results=None, shouldPrint=False, pid=0, loc
         stats["hit_critical"] += 1 if thisCrits else 0
         stats["hit_obj"] += 1 if thisHits else 0
         stats["num_rays"] += 1
-        
-        results += res
+        ##############################################
+        #results += res
+        #Write to file if hits critical geometry (TODO change to all geometry once file loading is working)
         if thisCrits:
+            #pass
             writeToFile(outFile, res)
-    bar.close()
-    outFile.close()
+    bar.close() #end bar
+    outFile.close()# done writing to file
     
-    # print(f"PID {pid} done")
     if results is not None:
         return stats
 
 
 def multicoreIterateMap(objs, N) -> list[dict]:
     division = N // CPU_COUNT
-    lock = mp.Manager().Lock()
-    divisionList = [(i * division, (i + 1) * division, N, objs, None, None, i, lock) for i in range(CPU_COUNT)]
-    with mp.Pool(CPU_COUNT) as pool:
+    lock = mp.Manager().Lock() #lock for prog. bars
+    #list of parameters to map to functions
+    divisionList = [(i * division, (i + 1) * division, N, objs, None, None, i, lock) for i in range(CPU_COUNT)] 
+
+    with mp.Pool(processes=CPU_COUNT) as pool:
         res = pool.starmap(iterateStartVecs, divisionList)
+
     printf()
     return res
 
