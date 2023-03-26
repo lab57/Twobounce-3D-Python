@@ -10,7 +10,6 @@ def fileParser(f, objDict=None):
     for line in f:
         spl = line.split("\t")
         # print(spl)
-        
         a = Vector2(float(spl[4]), float(spl[5]))
         b = Vector2(float(spl[6]), float(spl[7]))
         c = Vector2(float(spl[8]), float(spl[9]))
@@ -21,8 +20,14 @@ def fileParser(f, objDict=None):
 
 # iterate over files in
 # that directory
-for filename in os.scandir(DIR):
-    if filename.name[0] == ".":
-        continue
-    with open(f"{DIR}/{filename.name}", "r") as f:
-        res = fileParser(f)
+
+
+# for filename in os.scandir(DIR):
+#     if filename.name[0] == ".":
+#         continue
+#     with open(f"{DIR}/{filename.name}", "r") as f:
+#         print(filename.name)
+#         res = fileParser(f)
+with open(f"./output/output_test.txt", "r") as f:
+
+    fileParser(f)
