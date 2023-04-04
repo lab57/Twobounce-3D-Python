@@ -309,11 +309,11 @@ def iterateStartVecs(
         # DEFINE VECTOR ITERATION
         # start = Vector(0, 250 - t * LENGTH / N, 50) # moving point
         start = Vector(0, 0, 0)  # static point
-        theta = 0  # random theta
-        phi = t / N * 2 * math.pi  # random phi
+        theta = r.random() * math.pi  # random theta
+        phi = r.random() * 2 * math.pi  # random phi
 
         # dir = Vector(1, 0, 0)  # use spherical coords to calculate direction vector
-        dir = Vector(cos(phi), sin(phi), 0)
+        dir = Vector(cos(phi) * sin(theta), sin(theta) * sin(phi), cos(theta))
 
         res = twobounce(objs, start, dir)  # call two bounces and get responses
         res[0].n = t

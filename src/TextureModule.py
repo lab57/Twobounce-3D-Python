@@ -86,11 +86,12 @@ def writeImages():
 
         for hit in hits:
             x = int(N * hit.x)
-            y = int((N - 1) - N * hit.y)
+            y = int((N) - N * hit.y)
             if hit.hit_num == 0:
                 image[y][x] = [255, 0, 0]
             elif hit.hit_num == 1:
-                image[y][x] = [0, 255, 0]
+                if not np.array_equal(image[y][x], [255, 0, 0]):
+                    image[y][x] = [0, 255, 0]
         images[key] = Image.fromarray(image)
 
     for key in images:
