@@ -17,7 +17,7 @@ import TextureModule
 """
 
 # default to 1 million rays if input not provided
-N = int(sys.argv[1]) if len(sys.argv) > 1 else 100_000
+N = int(sys.argv[1]) if len(sys.argv) > 1 else 1_000_000
 
 
 def printResults(stats: list[dict]) -> None:
@@ -72,7 +72,7 @@ def oneVec() -> None:
 
 
 if __name__ == "__main__":
-    FILENAME = "RandomShapes"
+    FILENAME = "FourCubes"
     initalize()
     print("Loading geometry")
     loader = ObjLoader("./")
