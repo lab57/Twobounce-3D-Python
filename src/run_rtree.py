@@ -1,8 +1,8 @@
 from GeometricObjects import *
-from twobounce2 import *
+from twobounce2_rtree import *
 
 # from textured import ObjLoader
-from twobounce2 import ObjLoader
+# from twobounce2 import ObjLoader
 import sys
 import TextureModule
 
@@ -49,7 +49,7 @@ def main(N=N) -> None:
     t1 = time.time()
     print()
     print("Starting twobounce")
-    ans = multicoreIterateMap(objs, N)
+    ans = multicoreIterateMap(objs, rtree, N)
     printResults(ans)
     print("Finished")
     deltat = time.time() - t1
@@ -78,12 +78,14 @@ if __name__ == "__main__":
     loader = ObjLoader("./")
     objs, tris = loader.load(FILENAME + ".obj")
     rtree = loader.buildTree(tris)
+    print(f"{rtree.nnodes} nodes in R-Tree")
     # objs, tris = loader.load("untitled.obj")
     print(f"Done loading")
     print(f"{len(objs)} objects, {len(tris)} polygons\n")
     # oneVec()
     main()
+    print(numChecks)
 
-    TextureModule.main(FILENAME)
+    # TextureModule.main(FILENAME)
     # timePerformance()
     # print(len(ans))

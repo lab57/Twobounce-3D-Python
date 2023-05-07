@@ -29,9 +29,13 @@ class RTreeNode:
 
 class RTree:
     def __init__(self, triangles, max_triangles_per_leaf=8):
+        self.nnodes = 0
         self.root = self.build_tree(triangles, max_triangles_per_leaf)
 
     def build_tree(self, triangles, max_triangles_per_leaf):
+        if len(triangles) == 0:
+            return
+        self.nnodes += 1
         if len(triangles) <= max_triangles_per_leaf:
             min_point, max_point = self.compute_bounds(triangles)
             bounding_box = BoundingBox(min_point, max_point)

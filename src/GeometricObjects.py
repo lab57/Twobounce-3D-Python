@@ -145,6 +145,7 @@ class Triangle:
         self.normal = None
         self.collisions = []
         self.textureCoords = []
+        self.object = None
 
     def intersect(self, ray_start, ray_vec) -> tuple[bool, Vector]:
         """

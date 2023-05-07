@@ -118,7 +118,7 @@ class ObjLoader:
 
     def buildTree(self, triangles):
         print("Building R-Tree")
-        rtree = RTree(triangles, 10)
+        rtree = RTree(triangles, 50)
         print("Done")
         return rtree
 
@@ -168,7 +168,9 @@ class Hit:
             return f"<HitInfo - hit None>"
 
 
-def checkIntersections(objects: list[TriObject], st: Vector, ray: Vector) -> Hit:
+def checkIntersections(
+    objects: list[TriObject], rtree: RTree, st: Vector, ray: Vector
+) -> Hit:
     """
     Finds first intersection of ray starting at st with any object
 
@@ -185,33 +187,36 @@ def checkIntersections(objects: list[TriObject], st: Vector, ray: Vector) -> Hit
     u = None
     v = None
     hitInfo = [st, ray, None, None, None, None]
-    for obj in objects:
-        for tri in obj.triangles:
-            hit, vec = tri.intersect(st, ray)
-            if hit and vec.x < min_t:
-                min_t = vec.x
-                hitInfo[2] = min_t
-                hitInfo[3] = tri
-                hitInfo[4] = obj
-                hitInfo[5] = hit
-                u = vec.u
-                v = vec.v
+    triangles = rtree.query_ray(st.arr, ray.arr)
+    for tri in triangles:
+        hit, vec = tri.intersect(st, ray)
+        if hit and vec.x < min_t:
+            min_t = vec.x
+            hitInfo[2] = min_t
+            hitInfo[3] = tri
+            hitInfo[4] = tri.object
+            hitInfo[5] = hit
+            u = vec.u
+            v = vec.v
+
     h = Hit(*hitInfo)
     h.u = u
     h.v = v
     return h
 
 
-def twobounce(objects: list[TriObject], st: Vector, ray: Vector) -> tuple[Hit, Hit]:
+def twobounce(
+    objects: list[TriObject], rtree: RTree, st: Vector, ray: Vector
+) -> tuple[Hit, Hit]:
     """
     :param objects: List of objects
     :param st: Start of ray
     :param ray: Direction of ray
     :return: (res1, res2) where res1 is Hit information of first collision, res2 is Hit information of second collision
     """
-    objects = copy.copy(objects)
+    # objects = copy.copy(objects)
     # One bounce
-    result = checkIntersections(objects, st, ray)
+    result = checkIntersections(objects, rtree, st, ray)
     if not result.hit:
         return (result, Hit(None, None, None, None, None, False))
     coords = result.coord()  # coords becomes new start
@@ -221,7 +226,7 @@ def twobounce(objects: list[TriObject], st: Vector, ray: Vector) -> tuple[Hit, H
     # new_r = ray - n * 2 * (ray.dot(n))  # new direction vector from reflection
     new_r = ray - n * ((ray * 2).dot(n) / (abs(n) * abs(n)))
     # objects.remove(result.obj)  # remove originating structure from objects to avoid floating point error causing hit
-    result2 = checkIntersections(objects, coords, new_r)
+    result2 = checkIntersections(objects, rtree, coords, new_r)
     return result, result2
 
 
@@ -272,7 +277,7 @@ def writeToFile(file, res: list[Hit, Hit]):
 
 
 def iterateStartVecs(
-    n0, n, N, objs, results=None, shouldPrint=False, pid=0, lock=None
+    n0, n, N, objs, rtree, results=None, shouldPrint=False, pid=0, lock=None
 ) -> dict:
     """
     Iterate over source vectors from n0 to n
@@ -323,7 +328,7 @@ def iterateStartVecs(
         # dir = Vector(1, 0, 0)  # use spherical coords to calculate direction vector
         dir = Vector(cos(phi) * sin(theta), sin(theta) * sin(phi), cos(theta))
 
-        res = twobounce(objs, start, dir)  # call two bounces and get responses
+        res = twobounce(objs, rtree, start, dir)  # call two bounces and get responses
         res[0].n = t
         res[1].n = t
         ##########################################################
@@ -353,12 +358,12 @@ def iterateStartVecs(
         return stats
 
 
-def multicoreIterateMap(objs, N) -> list[dict]:
+def multicoreIterateMap(objs, rtree, N) -> list[dict]:
     division = N // CPU_COUNT
     lock = mp.Manager().Lock()  # lock for prog. bars
     # list of parameters to map to functions
     divisionList = [
-        (i * division, (i + 1) * division, N, objs, None, None, i, lock)
+        (i * division, (i + 1) * division, N, objs, rtree, None, None, i, lock)
         for i in range(CPU_COUNT)
     ]
 
