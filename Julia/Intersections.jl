@@ -4,6 +4,7 @@ using LinearAlgebra
 using BenchmarkTools
 
 
+const NULL_INTERSECTION::Vector{Float64} = [Inf, Inf, Inf]
 function getHitLocation(start::Vector{Float64}, dir::Vector{Float64}, t::Float64)
     return start + dir * t
 
@@ -11,7 +12,6 @@ end
 
 
 function triIntersect(triangle::Vector{Int64}, points::Vector{Vector{Float64}}, start::Vector{Float64}, dir::Vector{Float64})
-    null_intersection::Vector{Float64} = [Inf, Inf, Inf]
     eps = 0.000001
 
 
@@ -24,7 +24,7 @@ function triIntersect(triangle::Vector{Int64}, points::Vector{Vector{Float64}}, 
     det = edge1 ⋅ pvec
 
     if (abs(det) < eps)
-        return false, null_intersection
+        return false, NULL_INTERSECTION
     end
 
     inv_det = 1 / det
@@ -32,20 +32,20 @@ function triIntersect(triangle::Vector{Int64}, points::Vector{Vector{Float64}}, 
     u = (tvec ⋅ pvec) * inv_det
 
     if u < 0.0 || u > 1.0  # if not intersection
-        return false, null_intersection
+        return false, NULL_INTERSECTION
     end
 
     qvec = tvec × edge1
     v = dot(dir, qvec) * inv_det
     if v < 0.0 || u + v > 1.0  # if not intersection
         #  print('fail3')
-        return false, null_intersection
+        return false, NULL_INTERSECTION
     end
 
     t = (edge2 ⋅ qvec) * inv_det
     if t < eps
         #   print('fail4')
-        return false, null_intersection
+        return false, NULL_INTERSECTION
     end
 
     return true, [t, u, v]
@@ -64,7 +64,7 @@ struct HitInfo
     v::Float64
 end
 
-NULLHIT::HitInfo = HitInfo(Vector(), Vector(), 0, Object("null", Vector()), 0, false, 0, 0)
+const NULLHIT::HitInfo = HitInfo(Vector(), Vector(), 0, Object("null", Vector()), 0, false, 0, 0)
 
 function checkIntersections(data::GeometryData, start::Vector{Float64}, ray::Vector{Float64})::HitInfo
     min_t = Inf
@@ -78,8 +78,7 @@ function checkIntersections(data::GeometryData, start::Vector{Float64}, ray::Vec
     for object in data.objects
         #for triangle::Vector{Int64} in data.triangles[object.triangles]
         for i in 1:length(data.triangles[object.triangles])
-            triangle::Vector{Int64} = data.triangles[object.triangles][i]
-            didHit, vec = triIntersect(triangle, data.points, start, ray)
+            didHit, vec = triIntersect(data.triangles[object.triangles][i], data.points, start, ray)
             if didHit && vec[1] < min_t
                 min_t = vec[1]
                 t = min_t
@@ -109,9 +108,7 @@ function twobounce(data::GeometryData, start::Vector{Float64}, ray::Vector{Float
     newStart = getHitLocation(result.start, result.vec, result.t)
 
     n = data.points_n[geodata.triangles_n[2]][1]
-    p1 = ((2 * ray) ⋅ n / (norm(n) * norm(n)))
-    p2 = n * p1
-    new_r = ray - p2
+    new_r = ray - n * ((2 * ray) ⋅ n / (norm(n) * norm(n)))
 
     result2 = checkIntersections(data, newStart, new_r)
 
@@ -140,8 +137,8 @@ end
 function iterateStartVecs(data::GeometryData, n0, n)
     outFile = open("testOut.txt", "w")
     div = (n - n0) // 7500
-    Threads.@threads for t in n0:n
-        start = [0.0, 0.0, 0.0]
+    start = [0.0, 0.0, 0.0]
+    for t in n0:n
         θ = rand() * π
         ϕ = rand() * 2π
         dir = [cos(ϕ) * sin(θ), sin(θ) * sin(ϕ), cos(θ)]
@@ -158,10 +155,5 @@ end
 
 
 @time geodata = loadObj("./FourCubes.obj")
-println(geodata.objects)
-println("Loaded")
-triIntersect(geodata.triangles[1], geodata.points, [0.0, 0.0, 0.0], [1.0, 1.0, 1.0])
-checkIntersections(geodata, [0.0, 0.0, 0.0], [0.0, 0.0, 0.0])
-twobounce(geodata, [0.0, 0.0, 0.0], [1.0, 1.0, 1.0])
-println(geodata.points_n[geodata.triangles_n[2]])
-@time iterateStartVecs(geodata, 0, 10_000_000)
+
+@time iterateStartVecs(geodata, 0, 10_000)

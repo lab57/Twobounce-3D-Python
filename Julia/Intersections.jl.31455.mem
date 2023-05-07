@@ -1,0 +1,161 @@
+        - include("./LoadObj.jl")
+        - using .LoadObj
+        - using LinearAlgebra
+        - using BenchmarkTools
+        - 
+        - 
+        - const NULL_INTERSECTION::Vector{Float64} = [Inf, Inf, Inf]
+        - function getHitLocation(start::Vector{Float64}, dir::Vector{Float64}, t::Float64)
+        -     return start + dir * t
+        - 
+        - end
+        - 
+        - 
+        - function triIntersect(triangle::Vector{Int64}, points::Vector{Vector{Float64}}, start::Vector{Float64}, dir::Vector{Float64})
+        -     eps = 0.000001
+        - 
+        - 
+1248772201     verticies = map((x) -> points[x], triangle)
+3547654183     v1, v2, v3 = verticies
+414023519     edge1 = v2 - v1
+435912038     edge2 = v3 - v1
+        - 
+664396884     pvec = dir × edge2
+3516582741     det = edge1 ⋅ pvec
+        - 
+1269138658     if (abs(det) < eps)
+     3856         return false, NULL_INTERSECTION
+        -     end
+        - 
+336105514     inv_det = 1 / det
+571326794     tvec = start - v1
+3498626130     u = (tvec ⋅ pvec) * inv_det
+        - 
+914757603     if u < 0.0 || u > 1.0  # if not intersection
+887792067         return false, NULL_INTERSECTION
+        -     end
+        - 
+ 69520085     qvec = tvec × edge1
+334813525     v = dot(dir, qvec) * inv_det
+113001673     if v < 0.0 || u + v > 1.0  # if not intersection
+        -         #  print('fail3')
+ 81508322         return false, NULL_INTERSECTION
+        -     end
+        - 
+ 66305665     t = (edge2 ⋅ qvec) * inv_det
+ 17680432     if t < eps
+        -         #   print('fail4')
+ 10258896         return false, NULL_INTERSECTION
+        -     end
+        - 
+135495815     return true, [t, u, v]
+        - 
+        - end
+        - 
+        - 
+        - struct HitInfo
+      624     start::Vector{Float64}
+        -     vec::Vector{Float64}
+        -     t::Float64
+        -     obj::Object
+        -     tri::Int64
+        -     didHit::Bool
+        -     u::Float64
+        -     v::Float64
+        - end
+        - 
+        - const NULLHIT::HitInfo = HitInfo(Vector(), Vector(), 0, Object("null", Vector()), 0, false, 0, 0)
+        - 
+        - function checkIntersections(data::GeometryData, start::Vector{Float64}, ray::Vector{Float64})::HitInfo
+        -     min_t = Inf
+        -     u = 0.0
+        -     v = 0.0
+        -     #hitInfo = HitInfo([], [], 0, [], false, 0, 0)
+        -     hit = false
+        -     t = 0
+        -     tri = 0
+ 81601160     obj = Object("null", Vector())
+556101784     for object in data.objects
+        -         #for triangle::Vector{Int64} in data.triangles[object.triangles]
+12188176623         for i in 1:length(data.triangles[object.triangles])
+30975048778             didHit, vec = triIntersect(data.triangles[object.triangles][i], data.points, start, ray)
+1575613894             if didHit && vec[1] < min_t
+  1714336                 min_t = vec[1]
+        -                 t = min_t
+        -                 tri = i #triangle
+  2273936                 hit = didHit
+  3485800                 u = vec[2]
+  8873648                 v = vec[3]
+        -                 obj = object
+        -             end
+        - 
+6343984806         end
+707235667     end
+        -     #println(obj)
+116291254     return HitInfo(start, ray, t, obj, tri, hit, u, v)
+        -     #return start, ray, t, obj, tri, hit, u, v
+        - end
+        - 
+        - 
+        - function twobounce(data::GeometryData, start::Vector{Float64}, ray::Vector{Float64})::Tuple{HitInfo,HitInfo}
+ 13472240     result::HitInfo = checkIntersections(data, start, ray)
+        - 
+        - 
+        -     nullVector = Vector()
+ 31867916     if !result.didHit
+ 18737248         return (result, NULLHIT)
+        -     end
+  5457488     newStart = getHitLocation(result.start, result.vec, result.t)
+        - 
+ 16401080     n = data.points_n[geodata.triangles_n[2]][1]
+ 21167764     p1 = ((2 * ray) ⋅ n / (norm(n) * norm(n)))
+  1819376     p2 = n * p1
+  1692992     new_r = ray - p2
+        - 
+  5137752     result2 = checkIntersections(data, newStart, new_r)
+        - 
+  2981040     return result, result2
+        - 
+        - end
+        - 
+        - function calcTextureCoordinates(u::Float64, v::Float64, w::Float64, data::Vector{Vector{Float32}})
+        -     coord = [w, u, v]
+        -     #result = data ⋅ coord
+        - 
+        -     return w * data[1] + u * data[2] + v * data[3]
+        - end
+        - 
+        - function writeToFile(file, data::GeometryData, result::Tuple{HitInfo,HitInfo})
+        -     for i in 1:2
+        -         hit = result[i]
+        -         if !hit.didHit
+        -             return
+        -         else
+        -             point_coords = calcTextureCoordinates(hit.u, hit.v, 1 - hit.u - hit.v, data.points_t[data.triangles_t[hit.tri]])
+        -             write(file, "$(hit.obj.name)\t$i\t$(point_coords[1]),$(point_coords[2])\n")
+        -         end
+        -     end
+        - end
+        - function iterateStartVecs(data::GeometryData, n0, n)
+     1424     outFile = open("testOut.txt", "w")
+        0     div = (n - n0) // 7500
+     1632     for t in n0:n
+  2452944         start = [0.0, 0.0, 0.0]
+    39968         θ = rand() * π
+    38048         ϕ = rand() * 2π
+  2453424         dir = [cos(ϕ) * sin(θ), sin(θ) * sin(ϕ), cos(θ)]
+     2784         res = twobounce(data, start, dir)
+        -         #writeToFile(outFile, data, res)
+     8880     end
+        - 
+        - 
+        0     close(outFile)
+        - 
+        - 
+        - end
+        - 
+        - 
+        - 
+        - @time geodata = loadObj("./FourCubes.obj")
+        - 
+        - @time iterateStartVecs(geodata, 0, 10_000)

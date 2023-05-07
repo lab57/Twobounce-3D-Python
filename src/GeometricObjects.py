@@ -1,4 +1,5 @@
 import math, copy
+import numpy as np
 
 
 class Vector2:
