@@ -1,0 +1,84 @@
+        - using FileIO
+        - module LoadObj
+        - 
+        - export GeometryData, loadObj, Object
+        - 
+        - 
+        - struct Object
+      224     name::String
+        -     triangles::Vector{Int64}
+        - end
+        - 
+        - 
+        - struct GeometryData
+        -     points::Vector{Vector{Float64}}
+        -     points_t::Vector{Vector{Float32}}
+        -     points_n::Vector{Vector{Float64}}
+        -     triangles::Vector{Vector{Int64}}
+        -     triangles_t::Vector{Vector{Int64}}
+        -     triangles_n::Vector{Vector{Int64}}
+        -     objects::Vector{Object}
+        - end
+        - 
+        - #Load obj file as vectors
+        - function loadObj(file::String)
+      608     points = Vector{Vector{Float64}}()
+      624     points_t = Vector{Vector{Float32}}()
+      384     points_n = Vector{Vector{Float64}}()
+      672     triangles = Vector{Vector{Int64}}()
+      384     triangles_t = Vector{Vector{Int64}}()
+      432     triangles_n = Vector{Vector{Int64}}()
+      592     objects = Vector{Object}()
+        - 
+      688     currentObject::Object = Object("", Vector())
+     9624     for line in eachline(file)
+   117568         if isempty(line) || line[1] == "#"
+        -             continue
+        -         end
+   352776         parts = split(line, " ")
+        - 
+    67104         if parts[1] == "o"
+      224             if length(currentObject.triangles) !== 0
+     1712                 push!(objects, currentObject)
+        -             end
+     6416             currentObject = Object(parts[2], Vector{Int64}())
+    63280         elseif parts[1] == "v"
+   114544             vec = map(x -> parse(Float64, x), parts[2:end])
+     9360             push!(points, vec)
+    52944         elseif parts[1] == "vt"
+   184432             vec = map(x -> parse(Float32, x), parts[2:end])
+    31616             push!(points_t, vec)
+    24304         elseif parts[1] == "vn"
+    87968             vec = map(x -> parse(Float32, x), parts[2:end])
+    11808             push!(points_n, vec)
+    34128         elseif parts[1] == "f"
+    28400             triangle::Vector{Int64} = Vector()
+    27520             triangle_t::Vector{Int64} = Vector()
+    27792             triangle_n::Vector{Int64} = Vector()
+   178864             for point in parts[2:end]
+   370736                 indicies = split(point, "/")
+    33888                 index = parse(Int, indicies[1])
+    13744                 textureIndex = parse(Int, indicies[2])
+    18912                 normalIndex = parse(Int, indicies[3])
+    55120                 push!(triangle, index)
+    53712                 push!(triangle_t, textureIndex)
+    57184                 push!(triangle_n, normalIndex)
+    39216             end
+    22592             push!(triangles, triangle)
+    42464             push!(triangles_t, triangle_t)
+    51616             push!(triangles_n, triangle_n)
+    46960             push!(currentObject.triangles, length(triangles))
+        -         end
+   318232     end
+        0     return GeometryData(points, points_t, points_n, triangles, triangles_t, triangles_n, objects)
+        -     #return objects, points, points_t, triangles, triangles_t
+        - end
+        - 
+        - end
+        - 
+        - #=
+        - println("Object load")
+        - data = loadObj("./FourCubes.obj")
+        - println(data.objects)
+        - =#
+        - 
