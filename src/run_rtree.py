@@ -17,7 +17,12 @@ import TextureModule
 """
 
 # default to 1 million rays if input not provided
-N = int(sys.argv[1]) if len(sys.argv) > 1 else 1_000_000
+N = int(sys.argv[1]) if len(sys.argv) == 2 else 1_000_000
+if len(sys.argv) == 3:
+    FILENAME = sys.argv[1]
+    N = int(sys.argv[2])
+elif len(sys.argv) == 2:
+    N = int(sys.argv[1])
 
 
 def printResults(stats: list[dict]) -> None:
@@ -72,7 +77,8 @@ def oneVec() -> None:
 
 
 if __name__ == "__main__":
-    FILENAME = "monkey_circles"
+    if FILENAME is not None:
+        FILENAME = "monkey_circles"
     initalize()
     print("Loading geometry")
     loader = ObjLoader("./")
@@ -86,6 +92,6 @@ if __name__ == "__main__":
     main()
     print(numChecks)
 
-    # TextureModule.main(FILENAME)
+    TextureModule.main(FILENAME)
     # timePerformance()
     # print(len(ans))
