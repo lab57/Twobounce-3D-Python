@@ -136,3 +136,9 @@ def main(FILENAME):
     writeNewMtl(OUT_LOCATION, MTL_FILE_NAME, objects)
     writeNewObj(OUT_LOCATION, FILENAME, newFile)
     writeImages()
+
+
+import sys
+
+if __name__ == "__main__":
+    main(sys.argv[1])
